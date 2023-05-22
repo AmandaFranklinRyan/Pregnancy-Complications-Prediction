@@ -1,5 +1,6 @@
 library(tidyverse)
 library(rio)
+library(stringi)
 
 #Import medical notes to extract maternal data
 discharge_notes <- read.csv("Data/DISCHARGE_SUMMARIES_ORIG.csv")
@@ -92,10 +93,114 @@ maternal_data_cleaned_age <- maternal_data_original %>%
   mutate(age_cleaned=str_extract(age, "\\d+")) %>%  #remove the ages into a separate column
   select(-age)
 
+table(maternal_data_cleaned_age$age) #check range of ages, looks reasonable
+
 maternal_data_cleaned_circumference <- maternal_data_cleaned_age %>% 
   mutate(circumference_cleaned=str_extract(circumference_shortened, "\\d+")) %>% 
   mutate(circumference_cleaned=as.numeric(circumference_cleaned)) %>% 
-  mutate(circumference_decimal=ifelse(circumference_cleaned> 100, circumference_cleaned/100, circumference_cleaned))
+  mutate(circumference_decimal=case_when(circumference_cleaned > 1000 ~ (circumference_cleaned/100),
+                                         (circumference_cleaned >100 & circumference_cleaned< 1000) ~ (circumference_cleaned/10),
+                                         TRUE ~ circumference_cleaned)) %>%  #correct the decimal points
+  select(-circumference_shortened, -circumference_cleaned)
 
-str(maternal_data_cleaned_circumference)
+table(maternal_data_cleaned_circumference$circumference_decimal) #check range of circumferences looks reasonable
+
+# Convert gravida to numeric instead of roman numerals
+pregnancy_parity_cleaned <- maternal_data_cleaned_circumference %>% 
+  mutate(clean_roman_numerals=case_when(
+    str_detect(pregnancy, "XII") ~ str_replace_all(pregnancy, "XII", "12"),
+    str_detect(pregnancy, "X") ~ str_replace_all(pregnancy, "X", "10"),
+    str_detect(pregnancy, "VIII") ~ str_replace_all(pregnancy, "VIII", "7"),
+    str_detect(pregnancy, "VII") ~ str_replace_all(pregnancy, "VII", "7"),
+    str_detect(pregnancy, "VI") ~ str_replace_all(pregnancy, "VI", "6"),
+    str_detect(pregnancy, "IV") ~ str_replace_all(pregnancy, "IV", "4"),
+    str_detect(pregnancy, "V") ~ str_replace_all(pregnancy, "V", "5"),
+    str_detect(pregnancy, "III") ~ str_replace_all(pregnancy, "III", "3"),
+    str_detect(pregnancy, "II") ~ str_replace_all(pregnancy, "II", "2"),
+    str_detect(pregnancy, "I") ~ str_replace_all(pregnancy, "I", "1"),
+    str_detect(pregnancy, "lll") ~ str_replace_all(pregnancy, "lll", "3"), #there seems to be some confusion between I and l in the records
+    str_detect(pregnancy, "ll") ~ str_replace_all(pregnancy, "ll", "2"),
+    str_detect(pregnancy, "l") ~ str_replace_all(pregnancy, "l", "1"),
+    TRUE ~ pregnancy
+  ))
+
+# Covert para to numeric instead of roman numerals
+parity_cleaned <- pregnancy_parity_cleaned %>% 
+  mutate(clean_roman_numerals2=case_when(
+    str_detect(clean_roman_numerals, "XII") ~ str_replace_all(clean_roman_numerals, "XII", "12"),
+    str_detect(clean_roman_numerals, "X") ~ str_replace_all(clean_roman_numerals, "X", "10"),
+    str_detect(clean_roman_numerals, "VIII") ~ str_replace_all(clean_roman_numerals, "VIII", "7"),
+    str_detect(clean_roman_numerals, "VII") ~ str_replace_all(clean_roman_numerals, "VII", "7"),
+    str_detect(clean_roman_numerals, "VI") ~ str_replace_all(clean_roman_numerals, "VI", "6"),
+    str_detect(clean_roman_numerals, "IV") ~ str_replace_all(clean_roman_numerals, "IV", "4"),
+    str_detect(clean_roman_numerals, "V") ~ str_replace_all(clean_roman_numerals, "V", "5"),
+    str_detect(clean_roman_numerals, "III") ~ str_replace_all(clean_roman_numerals, "III", "3"),
+    str_detect(clean_roman_numerals, "II") ~ str_replace_all(clean_roman_numerals, "II", "2"),
+    str_detect(clean_roman_numerals, "I") ~ str_replace_all(clean_roman_numerals, "I", "1"),
+    str_detect(clean_roman_numerals, "lll") ~ str_replace_all(clean_roman_numerals, "lll", "1"),
+    str_detect(clean_roman_numerals, "ll") ~ str_replace_all(clean_roman_numerals, "ll", "1"),
+    str_detect(clean_roman_numerals, "l") ~ str_replace_all(clean_roman_numerals, "l", "1"),
+    TRUE ~ clean_roman_numerals
+  ))
+
+# Convert primiparious/primip/prima gravida to G0 P1 and add to column
+parity_cleaned <- parity_cleaned %>% 
+  mutate(clean_primip =if_else(clean_roman_numerals== "primiparous" | clean_roman_numerals== "primip" | clean_roman_numerals=="prima gravida", "G0 P1", clean_roman_numerals))
+
+#Extract the first number into the Gravida column
+gravida_data <- parity_cleaned %>% 
+  mutate(Gravida=str_extract(clean_primip, "\\d+"))
+
+#Extract the last number into the Para column
+# Easier to do this by reversing the string first using the stringi library
+para_data <- gravida_data %>% 
+  mutate(Para=str_extract(stringi::stri_reverse(clean_primip), "\\d+"))
+
+# Delete unnecessary columns
+para_data <- para_data %>% 
+  select(-clean_roman_numerals, -clean_roman_numerals2, -clean_primip)
+
+table(para_data$Para)
+
+#Identify weight
+
+weight_pounds_regex <- "(\\d+(?:\\.\\d+)?)\\s*pounds\\s*(\\d+)"
+test_pounds <- para_data %>% 
+  mutate(clean_text=str_replace_all(TEXT, "[[:punct:]]", "")) %>% #remove punctuation to make regex matching easier
+  mutate(pounds_weight=str_extract(clean_text,weight_pounds_regex)) 
+
+convert_kg <- function(weight_string){
+  pounds <- as.numeric(str_extract(weight_string, "\\d+"))
+  ounces <- as.numeric(str_extract(stringi::stri_reverse(weight_string),"\\d+"))
+  
+  conversion_factor <- 28.3495
+  grams= pounds*conversion_factor*16+ounces*conversion_factor
+  
+  return(grams)
+}
+
+convert_kg("6 pounds 7")
+
+
+weight_regex_2="(?:\\d+(?:\\.\\d+)?|\\b(?:one|two|three|four|five|six|seven|eight|nine|ten)\\b)\\s*pounds\\s*(\\d+)"
+test <- para_data %>% 
+  mutate(clean_text=str_replace_all(TEXT, "[[:punct:]]", "")) %>% #remove punctuation to make regex matching easier
+  mutate(weight_test=str_extract(clean_text,weight_regex_2)) 
+
+weight_sum <- sum(is.na(test$weight_test))
+weight_fraction <- (weight_sum/nrow(notes_pregnancy))
+
+%>% # extract weight information using regex
+  mutate(weight_clean=str_remove_all(weight, paste(words_to_remove, collapse = "|"))) %>% #take out stop words
+  mutate(weight_percentile_removed=str_remove_all(weight_clean, "\\b\\d{2}th\\b")) %>% # delete any numbers before "th" to get rid of percentile information
+  mutate(weight_shortened=str_extract(weight_percentile_removed, "\\w+(?:\\s+\\w+){0,2}")) #s
+
+exclude_strings <- c("g", "kg", "grams", "kilograms","gram","kilogram")
+test2 <- para_data %>% 
+  filter(!grepl(paste(exclude_strings, collapse = "|"), text, ignore.case = TRUE))
+
+
+
+
+  
 
