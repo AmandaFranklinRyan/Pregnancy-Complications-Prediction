@@ -162,6 +162,8 @@ para_data <- para_data %>%
 
 table(para_data$Para) #Check distribution of values makes sense
 
+
+# 2. Clean and extract the baby weight data ------------------------------------
 weight_data <- para_data %>% 
   mutate(weight_grams=str_extract(weight_percentile_removed, "\\d+")) %>%  # extract numeric weights by extracting first mtach
   mutate(weight_grams=as.numeric(weight_grams)) %>% 
@@ -192,82 +194,43 @@ convert_kg <- function(weight_string){
 weight_data <- weight_data %>% 
   mutate(weight_pounds=convert_kg(pounds_weight))
 
-# If weight field is blank then use kg instead
+# If weight field is blank then use pounds instead instead
 weight_enhanced <- weight_data %>% 
   mutate(weight_enhanced=if_else(is.na(weight_grams),weight_pounds,weight_grams))
 
 #Check extracted numbers with the original text extracts
-test2 <- weight_enhanced %>% 
+check_weights <- weight_enhanced %>% 
   select(weight_grams_cleaned, weight_clean, weight_enhanced, weight_percentile_removed)
 
+#remove unncecessayr columns
+weights_cleaned <- weight_enhanced %>% 
+  select(-weight, -weight_clean, -weight_percentile_removed, -weight_shortened, -weight_grams, 
+         -weight_grams_cleaned, weight_grams_kg, -pounds_weight, -weight_pounds)
 
+# Clean and Extract the baby length data ----------------------------------
 
-
-
-
-
-weight_enhanced <- weight_data %>% 
-  mutate(weight_enhanced=if_else(is.na(weight_grams),weight_pounds,weight_grams))
+#Custom function to convert inches to cm
+convert_cm <- function(string_inches){
   
-  mutate(weight_grams_cleaned=if_else((str_detect(weight_percentile_removed, "kilograms|kg") & weight_grams<10), weight_grams*1000, weight_grams))
+  conversion_factor=2.54
+  number <- str_extract(string_inches, "\\d+")
+  number_cm <- as.numeric(number)*conversion_factor
   
-  mutate(weight_grams_cleaned=if_else((weight_grams>300 & weight_grams<5000), weight_grams, NA))
-
-str_detect(clean_roman_numerals, "kilograms|kg")
-
-weight_sum <- sum(is.na(weight_data$weight_grams))# total number of NAs in the complicated column
-weight_fraction <- (weight_sum/nrow(weight_data))
-
-table(weight_data$weight_grams)
-
-test2 <- weight_data %>% 
-  select(weight_grams_cleaned, weight_clean)
-
-summary(weight_data)
-
-ggplot(data=weight_data, aes(x=as.numeric(weight_grams_cleaned)))+
-  geom_histogram()
-
-
-#Identify weight in pounds
-weight_pounds_regex <- "(\\d+(?:\\.\\d+)?)\\s*pounds\\s*(\\d+)"
-test_pounds <- para_data %>% 
-  mutate(clean_text=str_replace_all(TEXT, "[[:punct:]]", "")) %>% #remove punctuation to make regex matching easier
-  mutate(pounds_weight=str_extract(clean_text,weight_pounds_regex)) 
-
-## Custom function to convert pounds to grams
-convert_kg <- function(weight_string){
-  pounds <- as.numeric(str_extract(weight_string, "\\d+"))
-  ounces <- as.numeric(str_extract(stringi::stri_reverse(weight_string),"\\d+"))
-  
-  conversion_factor <- 28.3495
-  grams= pounds*conversion_factor*16+ounces*conversion_factor
-  
-  return(grams)
+  return(number_cm)
 }
 
-convert_kg("6 pounds 7")
-
-
-weight_regex_2="(?:\\d+(?:\\.\\d+)?|\\b(?:one|two|three|four|five|six|seven|eight|nine|ten)\\b)\\s*pounds\\s*(\\d+)"
-test <- para_data %>% 
-  mutate(clean_text=str_replace_all(TEXT, "[[:punct:]]", "")) %>% #remove punctuation to make regex matching easier
-  mutate(weight_test=str_extract(clean_text,weight_regex_2)) 
-
-weight_sum <- sum(is.na(test$weight_test))
-weight_fraction <- (weight_sum/nrow(notes_pregnancy))
-
-%>% # extract weight information using regex
-  mutate(weight_clean=str_remove_all(weight, paste(words_to_remove, collapse = "|"))) %>% #take out stop words
-  mutate(weight_percentile_removed=str_remove_all(weight_clean, "\\b\\d{2}th\\b")) %>% # delete any numbers before "th" to get rid of percentile information
-  mutate(weight_shortened=str_extract(weight_percentile_removed, "\\w+(?:\\s+\\w+){0,2}")) #s
-
-exclude_strings <- c("g", "kg", "grams", "kilograms","gram","kilogram")
-test2 <- para_data %>% 
-  filter(!grepl(paste(exclude_strings, collapse = "|"), text, ignore.case = TRUE))
+length_cleaned <- weights_cleaned %>% 
+  mutate(length=case_when(str_detect(length_shortened, "cm|centimeters") ~ str_extract(length_shortened, "\\d+"),
+                          str_detect(length_shortened, "inches") ~ as.character(convert_cm(length_shortened)),
+                          TRUE ~length_shortened)) %>% 
+  mutate(length=as.numeric(length)) %>% 
+  mutate(length_decimal=case_when((length>100 & length<1000) ~length/10,
+                        length > 1000 ~length/100,
+                        TRUE ~length))
+test4 <- length_cleaned %>% 
+  select(length, length_shortened, length_decimal)
 
 
 
 
-  
 
