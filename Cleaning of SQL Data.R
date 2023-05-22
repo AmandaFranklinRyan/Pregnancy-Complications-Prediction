@@ -220,15 +220,18 @@ convert_cm <- function(string_inches){
 }
 
 length_cleaned <- weights_cleaned %>% 
-  mutate(length=case_when(str_detect(length_shortened, "cm|centimeters") ~ str_extract(length_shortened, "\\d+"),
-                          str_detect(length_shortened, "inches") ~ as.character(convert_cm(length_shortened)),
+  mutate(length=case_when(str_detect(length_shortened, "cm|centimeters") ~ str_extract(length_shortened, "\\d+"), #extrcat values in cm
+                          str_detect(length_shortened, "inches") ~ as.character(convert_cm(length_shortened)),#extract values in inches
                           TRUE ~length_shortened)) %>% 
   mutate(length=as.numeric(length)) %>% 
-  mutate(length_decimal=case_when((length>100 & length<1000) ~length/10,
+  mutate(length_decimal=case_when((length>100 & length<1000) ~length/10, #correct decimal points
                         length > 1000 ~length/100,
                         TRUE ~length))
-test4 <- length_cleaned %>% 
-  select(length, length_shortened, length_decimal)
+
+# 4. Select important Columns ---------------------------------------------
+
+maternal_data_final <- length_cleaned %>% 
+  
 
 
 
