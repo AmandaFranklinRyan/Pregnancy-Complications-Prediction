@@ -160,15 +160,78 @@ para_data <- gravida_data %>%
 para_data <- para_data %>% 
   select(-clean_roman_numerals, -clean_roman_numerals2, -clean_primip)
 
-table(para_data$Para)
+table(para_data$Para) #Check distribution of values makes sense
 
-#Identify weight
+weight_data <- para_data %>% 
+  mutate(weight_grams=str_extract(weight_percentile_removed, "\\d+")) %>%  # extract numeric weights by extracting first mtach
+  mutate(weight_grams=as.numeric(weight_grams)) %>% 
+  mutate(weight_grams_cleaned=if_else((weight_grams>300 & weight_grams<5000), weight_grams, NA) #remove impossible weights 
+         
+#Try and enrich weight data with weights in pounds
 
+#Identify weight in pounds
+weight_pounds_regex <- "(\\d+(?:\\.\\d+)?)\\s*pounds\\s*(\\d+)"
+weight_data <- weight_data %>% 
+  mutate(clean_text=str_replace_all(TEXT, "[[:punct:]]", "")) %>% #remove punctuation to make regex matching easier
+  mutate(pounds_weight=str_extract(clean_text,weight_pounds_regex)) #extract weight in pounds from medical records
+
+# Use csutom function to convert weights in pounds to weights in kg
+
+## Custom function to convert pounds to grams
+convert_kg <- function(weight_string){
+  pounds <- as.numeric(str_extract(weight_string, "\\d+"))
+  ounces <- as.numeric(str_extract(stringi::stri_reverse(weight_string),"\\d+"))
+  
+  conversion_factor <- 28.3495
+  grams= pounds*conversion_factor*16+ounces*conversion_factor
+  
+  return(grams)
+}
+weight_data <- weight_data %>% 
+  mutate(weight_pounds=convert_kg(pounds_weight))
+
+weight_enhanced <- weight_data %>% 
+  mutate(weight_enhanced=if_else(is.na(weight_grams),weight_pounds,weight_grams))
+
+test2 <- weight_enhanced %>% 
+  select(weight_grams_cleaned, weight_clean, weight_enhanced, weight_percentile_removed)
+
+
+
+
+
+
+
+weight_enhanced <- weight_data %>% 
+  mutate(weight_enhanced=if_else(is.na(weight_grams),weight_pounds,weight_grams))
+  
+  mutate(weight_grams_cleaned=if_else((str_detect(weight_percentile_removed, "kilograms|kg") & weight_grams<10), weight_grams*1000, weight_grams))
+  
+  mutate(weight_grams_cleaned=if_else((weight_grams>300 & weight_grams<5000), weight_grams, NA))
+
+str_detect(clean_roman_numerals, "kilograms|kg")
+
+weight_sum <- sum(is.na(weight_data$weight_grams))# total number of NAs in the complicated column
+weight_fraction <- (weight_sum/nrow(weight_data))
+
+table(weight_data$weight_grams)
+
+test2 <- weight_data %>% 
+  select(weight_grams_cleaned, weight_clean)
+
+summary(weight_data)
+
+ggplot(data=weight_data, aes(x=as.numeric(weight_grams_cleaned)))+
+  geom_histogram()
+
+
+#Identify weight in pounds
 weight_pounds_regex <- "(\\d+(?:\\.\\d+)?)\\s*pounds\\s*(\\d+)"
 test_pounds <- para_data %>% 
   mutate(clean_text=str_replace_all(TEXT, "[[:punct:]]", "")) %>% #remove punctuation to make regex matching easier
   mutate(pounds_weight=str_extract(clean_text,weight_pounds_regex)) 
 
+## Custom function to convert pounds to grams
 convert_kg <- function(weight_string){
   pounds <- as.numeric(str_extract(weight_string, "\\d+"))
   ounces <- as.numeric(str_extract(stringi::stri_reverse(weight_string),"\\d+"))
