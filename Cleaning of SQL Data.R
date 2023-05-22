@@ -165,8 +165,9 @@ table(para_data$Para) #Check distribution of values makes sense
 weight_data <- para_data %>% 
   mutate(weight_grams=str_extract(weight_percentile_removed, "\\d+")) %>%  # extract numeric weights by extracting first mtach
   mutate(weight_grams=as.numeric(weight_grams)) %>% 
-  mutate(weight_grams_cleaned=if_else((weight_grams>300 & weight_grams<5000), weight_grams, NA) #remove impossible weights 
-         
+  mutate(weight_grams_cleaned=if_else((weight_grams>50 & weight_grams<5000), weight_grams, NA)) %>%  #remove impossible weights 
+  mutate(weight_grams_kg=if_else((weight_grams_cleaned>100 & weight_grams_cleaned<500), weight_grams_cleaned*10,weight_grams_cleaned)) #Decimal points lost in processing, these weights are in kg rather than grams    
+
 #Try and enrich weight data with weights in pounds
 
 #Identify weight in pounds
@@ -187,12 +188,15 @@ convert_kg <- function(weight_string){
   
   return(grams)
 }
+#Covert pounds to kg
 weight_data <- weight_data %>% 
   mutate(weight_pounds=convert_kg(pounds_weight))
 
+# If weight field is blank then use kg instead
 weight_enhanced <- weight_data %>% 
   mutate(weight_enhanced=if_else(is.na(weight_grams),weight_pounds,weight_grams))
 
+#Check extracted numbers with the original text extracts
 test2 <- weight_enhanced %>% 
   select(weight_grams_cleaned, weight_clean, weight_enhanced, weight_percentile_removed)
 
