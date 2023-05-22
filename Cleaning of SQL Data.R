@@ -1,4 +1,5 @@
 library(tidyverse)
+library(rio)
 
 #Import medical notes to extract maternal data
 discharge_notes <- read.csv("Data/DISCHARGE_SUMMARIES_ORIG.csv")
@@ -6,7 +7,7 @@ discharge_notes <- read.csv("Data/DISCHARGE_SUMMARIES_ORIG.csv")
 discharge_notes_cleaned <- discharge_notes %>% 
   select(-DESCRIPTION,-CATEGORY)
 
-# Extract key maternal information from infants' medical notes ------------
+# 1. Extract key maternal information from infants' medical notes ------------
 
 # Extract mother's age using regular expressions
 #From looking at notes need to incorporate newline characters into the Regex
@@ -25,19 +26,19 @@ pregnancy_regex <- "(?i)(Gravida|G)\\s*([IVX]+|\\d+)[,]?\\s*(Para|P|p)\\s*([IVX]
 notes_pregnancy <- notes_age %>% 
   mutate(pregnancy=str_extract(TEXT,pregnancy_regex))
 
-pregnancy_sum <- sum(is.na(notes_pregnancy$pregnancy))# total number of NAs in the complicated column
+pregnancy_sum <- sum(is.na(notes_pregnancy$pregnancy))
 pregnancy_fraction <- (pregnancy_sum/nrow(notes_pregnancy))
 #Check percent of missing pregnancy data
 # Find ages for 92% of women
 
-words_to_remove <- c("was","is","of","weight")
+words_to_remove <- c("was","is","of","weight") # remove these words so that weight and value are closer together and can be easily extracted
 
 weight_regex <- " (?i)((birth\\s+weight|weight|birthweight)(\\s+\\w+){0,6})|(\\d+ gram product)"
 notes_weight <- notes_pregnancy %>% 
   mutate(clean_text=str_replace_all(TEXT, "[[:punct:]]", "")) %>% #remove punctuation to make regex matching easier
   mutate(weight=str_extract(clean_text,weight_regex)) %>% # extract weight information using regex
   mutate(weight_clean=str_remove_all(weight, paste(words_to_remove, collapse = "|"))) %>% #take out stop words
-  mutate(weight_percentile_removed=str_remove_all(weight_clean, "\\b\\d{2}th\\b")) %>% # delete any numbers before th to get rid of percentile information
+  mutate(weight_percentile_removed=str_remove_all(weight_clean, "\\b\\d{2}th\\b")) %>% # delete any numbers before "th" to get rid of percentile information
   mutate(weight_shortened=str_extract(weight_percentile_removed, "\\w+(?:\\s+\\w+){0,2}")) #select first 2 words after the match leaving only the weight not other numbers
 
 #Check percent of missing weight data
@@ -46,17 +47,15 @@ weight_sum <- sum(is.na(notes_weight$weight))
 weight_fraction <- (weight_sum/nrow(notes_pregnancy))
 
 # Find the baby length using regex
-length_regex <- "(?i)length(\\s+\\w+){0,4}"
+length_regex <- "(?i)length(\\s+\\w+){0,4}" #select the word "length" and the 4 nearest words after it
 notes_length <- notes_weight %>% 
   mutate(clean_text=str_replace_all(TEXT, "[[:punct:]]", "")) %>%
   mutate(length=str_extract(clean_text,length_regex))
 
-# Remove stop words to pinpoint length
-
 notes_length <- notes_length %>% 
   mutate(length_clean=str_remove_all(length, paste(words_to_remove, collapse = "|"))) %>% #take out stop words
   mutate(length_shortened=str_extract(length_clean, "\\w+(?:\\s+\\w+){0,2}")) %>%  #take the first 3 words to get key information 
-  select(-length,-length_clean)
+  select(-length,-length_clean) #remove unnceessary columns
 
 #Find the babies' head circumference
 circumference_regex <- " (?i)head\\s+circumference(\\s+\\w+){0,4}"
@@ -65,6 +64,7 @@ notes_circumference <- notes_length %>%
   mutate(circumference_clean=str_remove_all(circumference, paste(words_to_remove, collapse = "|"))) %>% #take out stop words
   mutate(circumference_shortened=str_extract(circumference_clean, "\\w+(?:\\s+\\w+){0,3}")) %>% 
   select(-circumference,-circumference_clean)
+
 circumference_sum <- sum(is.na(notes_circumference$circumference))# total number of NAs in the complicated column
 circumference_fraction <- (circumference_sum/nrow(notes_circumference))
 
@@ -74,14 +74,28 @@ words_to_remove_2 <- ("Sex:")
 gender_regex <- "Sex:\\s+[FM]"
 notes_gender <- notes_circumference %>% 
   mutate(gender=str_extract(TEXT,gender_regex)) %>% 
-  mutate(gender_clean=str_remove_all(gender, paste(words_to_remove_2, collapse = "|")))
+  mutate(gender_clean=str_remove_all(gender, paste(words_to_remove_2, collapse = "|"))) #remove the word "sex" leaving single letter
 
-gender_sum <- sum(is.na(notes_gender$gender))# total number of NAs in the complicated column
+gender_sum <- sum(is.na(notes_gender$gender))
 gender_fraction <- (gender_sum/nrow(notes_gender))
 
-#Clean dataframe and export
 maternal_data <- notes_gender %>% 
   select(-clean_text,-gender)
 
+rio::export(maternal_data, 'Data/maternal_data_original.rds')
 
+# 2. Clean Dataframe ---------------------------------------------------------
+
+maternal_data_original <- rio::import('Data/maternal_data_original.rds')
+
+maternal_data_cleaned_age <- maternal_data_original %>% 
+  mutate(age_cleaned=str_extract(age, "\\d+")) %>%  #remove the ages into a separate column
+  select(-age)
+
+maternal_data_cleaned_circumference <- maternal_data_cleaned_age %>% 
+  mutate(circumference_cleaned=str_extract(circumference_shortened, "\\d+")) %>% 
+  mutate(circumference_cleaned=as.numeric(circumference_cleaned)) %>% 
+  mutate(circumference_decimal=ifelse(circumference_cleaned> 100, circumference_cleaned/100, circumference_cleaned))
+
+str(maternal_data_cleaned_circumference)
 
