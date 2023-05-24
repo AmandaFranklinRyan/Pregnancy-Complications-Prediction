@@ -41,7 +41,7 @@ weight_cleaned <- weight_cleaned %>%
 weight_cleaned <- weight_cleaned %>% 
   select(SUBJECT_ID, weight_CHART)
 
-###--- 1.2 Prepare GESTATIONAL_AGE
+###--- 1.3 Prepare GESTATIONAL_AGE
 
 #Select entries with smallest DIFFERENCE
 gestation_cleaned <- gestational_age %>% 
@@ -55,9 +55,32 @@ gestation_cleaned <- gestation_cleaned %>%
   mutate(gestation_CHART=str_remove_all(VALUE, paste(words_to_remove, collapse = "|")))
 
 #Select columns
-gestation_cleaned <- 
+gestation_cleaned <- gestation_cleaned %>% 
+  select(SUBJECT_ID, gestation_CHART)
 
 table(gestation_cleaned$gestation_clean)
+
+###--- 1.4 Prepare ABDOMINAL GIRTH
+
+#Select entries with smallest DIFFERENCE
+abdominal_cleaned <- abdominal_girth %>% 
+  group_by(SUBJECT_ID) %>% 
+  slice_min(order_by=DIFFERENCE, with_ties = FALSE) %>% 
+  ungroup() %>% 
+  select(SUBJECT_ID,abdominal=VALUE_3294)
+
+###--- 1.4 Prepare HEAD CIRCUMFERENCE
+
+#Select entries with smallest DIFFERENCE
+circumference_cleaned <- head_circumference%>% 
+  group_by(SUBJECT_ID) %>% 
+  slice_min(order_by=DIFFERENCE, with_ties = FALSE) %>% 
+  ungroup() %>% 
+  select(SUBJECT_ID, circumferenceCHART=BABY_LENGTH)
+
+  
+
+  
  
 
 
