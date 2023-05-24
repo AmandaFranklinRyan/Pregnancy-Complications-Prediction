@@ -18,21 +18,47 @@ important_columns <- c("age_cleaned", "Gravida", "Para")
 maternal_data_cleaned <- maternal_data %>%
   mutate(number_nas = rowSums(is.na(select(., all_of(important_columns))))) %>%  #create row with number NAs in most important columns
   group_by(SUBJECT_ID) %>% 
-  slice_min(n = 1, order_by =number_nas) %>% #takes rows with fewest NAs
+  slice_min(n = 1, order_by =number_nas,with_ties = FALSE) %>% #takes rows with fewest NAs, with TIES selects only one row if there qre ties
   ungroup()
-# 150 records dropped so now dataset only contains 1 value per SUBJECT_ID
+# 300 records dropped so now dataset only contains 1 value per SUBJECT_ID
 
 ###--- 1.2 Prepare BABY_WEIGHT
 
+#Select weight value with the shortest difference between admission and CHARTTIME
 weight_cleaned <- weight %>% 
   group_by(SUBJECT_ID) %>% 
   slice_min(order_by=DIFFERENCE, with_ties = FALSE) %>% 
   ungroup()
-  top_n(1, -DIFFERENCE) %>% 
+
+#Create single weight column
+# Choose VALUE_3723 as it has the most values and it it is black use weight from one of the other columns instead
+weight_cleaned <- weight_cleaned %>% 
+  mutate(across(c(VALUE_3580, VALUE_3723, VALUE_4183), as.numeric)) %>% 
+  mutate(weight_CHART= case_when(!is.na(VALUE_3723)~ VALUE_3723,
+                                 is.na(VALUE_3723) & !is.na(VALUE_3580) ~ VALUE_3580,
+                                 is.na(VALUE_3723) & !is.na(VALUE_4183) ~ VALUE_4183)) 
+
+weight_cleaned <- weight_cleaned %>% 
+  select(SUBJECT_ID, weight_CHART)
+
+###--- 1.2 Prepare GESTATIONAL_AGE
+
+#Select entries with smallest DIFFERENCE
+gestation_cleaned <- gestational_age %>% 
+  group_by(SUBJECT_ID) %>% 
+  slice_min(order_by=DIFFERENCE, with_ties = FALSE) %>% 
   ungroup()
-  slice_min(order_by =DIFFERENCE, ties.method="first") %>% 
-  ungroup()
-  
+
+#Clean column to get consistent format
+words_to_remove <- c("weeks gest","PMA",">","weeks","WK","WKS","(?<=40).*")
+gestation_cleaned <- gestation_cleaned %>% 
+  mutate(gestation_CHART=str_remove_all(VALUE, paste(words_to_remove, collapse = "|")))
+
+#Select columns
+gestation_cleaned <- 
+
+table(gestation_cleaned$gestation_clean)
+ 
 
 
   
