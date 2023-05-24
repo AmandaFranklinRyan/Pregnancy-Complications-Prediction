@@ -96,15 +96,15 @@ table(para_data$Para)
 words_to_remove_2 <- ("Sex:")
 
 gender_regex <- "Sex:\\s+[FM]"
-notes_gender <- notes_circumference %>% 
+notes_gender <- para_data %>% 
+  mutate(clean_text=str_replace_all(TEXT, "[[:punct:]]", "")) %>% #remove punctuation to make regex matching easier
   mutate(gender=str_extract(TEXT,gender_regex)) %>% 
   mutate(gender_clean=str_remove_all(gender, paste(words_to_remove_2, collapse = "|"))) #remove the word "sex" leaving single letter
 
-gender_sum <- sum(is.na(notes_gender$gender))
-gender_fraction <- (gender_sum/nrow(notes_gender))
-
 maternal_data <- notes_gender %>% 
   select(-clean_text,-gender)
+
+rio::export(maternal_data, "Data/Maternal Data 2.csv")
 
 
 
