@@ -231,6 +231,10 @@ length_cleaned <- weights_cleaned %>%
 # 4. Select important Columns ---------------------------------------------
 
 maternal_data_final <- length_cleaned %>% 
+  select(SUBJECT_ID,gender_clean, age_cleaned,circumference_decimal, Gravida, Para, weight_enhanced,length_decimal, TEXT)
+
+summary(maternal_data_final)
+export(maternal_data_final, "Data/Maternal_data_cleaned.csv")
   
 
 
