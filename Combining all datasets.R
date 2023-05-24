@@ -1,7 +1,7 @@
 library(tidyverse)
 
 #Load datasets
-maternal_data <- rio::import("Data/Maternal_data_cleaned.csv")
+maternal_data <- rio::import("Data/Maternal Data 2.csv")
 patient_list <- rio::import("Data/FULL_DELIVERY_LIST_CLEANED.csv")
 gestational_age <- rio::import("Data/GESTATIONAL_AGE.csv")
 head_circumference <- rio::import("Data/HEAD_CIRCUMFERENCE.csv")
@@ -69,7 +69,7 @@ abdominal_cleaned <- abdominal_girth %>%
   ungroup() %>% 
   select(SUBJECT_ID,abdominal=VALUE_3294)
 
-###--- 1.4 Prepare HEAD CIRCUMFERENCE
+###--- 1.5 Prepare HEAD CIRCUMFERENCE
 
 #Select entries with smallest DIFFERENCE
 circumference_cleaned <- head_circumference%>% 
@@ -78,13 +78,32 @@ circumference_cleaned <- head_circumference%>%
   ungroup() %>% 
   select(SUBJECT_ID, circumferenceCHART=BABY_LENGTH)
 
-  
+###--- 1.6 Prepare LENGTH
+#Select entries with smallest DIFFERENCE
+length_cleaned <- length%>% 
+  group_by(SUBJECT_ID) %>% 
+  slice_min(order_by=DIFFERENCE, with_ties = FALSE) %>% 
+  ungroup() %>% 
+  select(SUBJECT_ID, lengthCHART=BABY_LENGTH)
 
-  
- 
+# 2. Join datasets together -------------------------------------------- 
+
+combined_baby_data <- maternal_data_cleaned %>% 
+  left_join(patient_list, by="SUBJECT_ID") %>% 
+  left_join(gestation_cleaned, by="SUBJECT_ID") %>% 
+  left_join(length_cleaned, by="SUBJECT_ID") %>% 
+  left_join(abdominal_cleaned, by="SUBJECT_ID") %>% 
+  left_join(weight_cleaned, by="SUBJECT_ID") %>% 
+  left_join(circumference_cleaned, by="SUBJECT_ID")
+
+combined_baby_data <- combined_baby_data %>% 
+  select(SUBJECT_ID,gender_clean, age_cleaned,Gravida, Para, DELIVERY_TYPE, lengthCHART, abdominal, weight_CHART, circumferenceCHART) %>% 
+  drop_na()
+
+rio::export(combined_baby_data,"Data/ML Data Version 2.csv")
 
 
-  
+
   
 
 
