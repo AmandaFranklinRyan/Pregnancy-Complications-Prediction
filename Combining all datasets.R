@@ -10,7 +10,6 @@ abdominal_girth <- rio::import("Data/ABDOMINAL_GIRTH.csv")
 weight <- rio::import("Data/BABY_WEIGHT.csv")
 diagnoses <- rio::import("Data/BABY_DIAGNOSES.csv")
 
-
 # 1. Prepare datasets for joining --------------------------------------------
 
 ###--- 1.1 Prepare Maternal health data
@@ -129,6 +128,7 @@ gestational_combined <- gestational_combined %>%
 
 table(gestational_combined$gestational_final)
 table(gestational_combined$DELIVERY_TYPE)
+
 
 rio::export(gestational_combined,"Data/ML Data Version 3.csv")
 
