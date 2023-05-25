@@ -115,22 +115,24 @@ baby_gestational <- baby_diagnoses %>%
   mutate(gestational_age=ifelse(str_detect(SHORT_TITLE,"comp wks gestation"), SHORT_TITLE,NA)) %>% #Identify rows with gestation information
   mutate(gestational_DIAGNOSES=str_extract(gestational_age,"-?\\d+(?:\\.\\d+)?\\s*-\\s*-?\\d+(?:\\.\\d+)?")) %>%  #extract numbers only
   select(-gestational_age) %>% 
-  drop_na(gestational_DIAGNOSES)
+  drop_na(gestational_DIAGNOSES) %>% 
+  distinct()
+
 
 # Join gestational age and main data_frame
 gestational_combined <-left_join(combined_baby_data, baby_gestational, by="SUBJECT_ID") 
+  
 
 #Combine gestational age from CHART and DIAGNOSIS together into a single column
 gestational_combined <- gestational_combined %>% 
   mutate(gestational_final=ifelse((!is.na(gestational_DIAGNOSES)), gestational_DIAGNOSES, gestation_CHART)) %>% 
   select(SUBJECT_ID,gender_clean, age_cleaned,Gravida, Para, DELIVERY_TYPE, lengthCHART, abdominal, weight_CHART, circumferenceCHART, gestational_final) %>% 
-  drop_na()
+  drop_na() %>% group_by(SUBJECT_ID) %>% 
+  slice_min(order_by=gestational_final, with_ties = FALSE) %>% 
+  ungroup()
 
-table(gestational_combined$gestational_final)
-table(gestational_combined$DELIVERY_TYPE)
 
-
-rio::export(gestational_combined,"Data/ML Data Version 3.csv")
+rio::export(gestational_combined,"Data/ML Data Version 4.csv")
 
 
 
