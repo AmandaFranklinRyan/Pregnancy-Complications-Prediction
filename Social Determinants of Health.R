@@ -62,6 +62,8 @@ table(social_cleaned$Ethnicity_CLEAN)
 
 data_all_variables <- left_join(maternal_data,social_cleaned, by="SUBJECT_ID")
 
+rio::export(data_all_variables, "Data/Final Machine Learning Test Data Version 1.csv")
+
 
 
 
