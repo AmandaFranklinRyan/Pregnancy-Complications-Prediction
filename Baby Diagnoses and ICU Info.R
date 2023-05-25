@@ -93,7 +93,8 @@ vaccine_delivery <- los_hepB %>%
 #Extract key columns and export dataframe
 
 final_los_diagnoses <- los_hepB %>% 
-  select(-DELIVERY_TYPE.x,-DELIVERY_TYPE.y,-HADM_ID, -ICUSTAY_ID)
+  select(-DELIVERY_TYPE.x,-DELIVERY_TYPE.y,-HADM_ID, -ICUSTAY_ID) %>% 
+  distinct(SUBJECT_ID)
 
 rio::export(final_los_diagnoses, "Data/LOS and Diagnosis.csv")
 
