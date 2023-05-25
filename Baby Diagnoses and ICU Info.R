@@ -2,7 +2,7 @@ library(tidyverse)
 library(plotly)
 
 # Load datasets
-baby_data <- read.csv("Data/ML Data Version 2.csv")
+baby_data <- read.csv("Data/ML Data Version 4.csv")
 diagnoses <- read.csv("Data/BABY_DIAGNOSES.csv")
 icu_data <- read.csv("Data/ICU_INFO.csv")
 
@@ -10,7 +10,6 @@ icu_data <- read.csv("Data/ICU_INFO.csv")
 patients_only <- baby_data %>% 
   select(SUBJECT_ID, DELIVERY_TYPE)
 icu_baby <- left_join(patients_only, icu_data, by="SUBJECT_ID")
-
 
 # Exploratory Data Analysis on ICU Stays ----------------------------------
 
@@ -30,7 +29,10 @@ number_admissions <- icu_baby %>%
 
 # Select relevant columns from ICU data
 icu_baby_cleaned <- icu_baby %>% 
-  select(SUBJECT_ID, LOS)
+  select(SUBJECT_ID, LOS, HADM_ID) %>%
+  group_by(SUBJECT_ID) %>% #Select lowest HADM_ID associated with earlier stay
+  slice_min(order_by=HADM_ID, with_ties = FALSE) %>% 
+  ungroup()
 
 # Exploratory Data Analysis on baby diagnoses -----------------------------
 
@@ -93,8 +95,10 @@ vaccine_delivery <- los_hepB %>%
 #Extract key columns and export dataframe
 
 final_los_diagnoses <- los_hepB %>% 
-  select(-DELIVERY_TYPE.x,-DELIVERY_TYPE.y,-HADM_ID, -ICUSTAY_ID) %>% 
-  distinct(SUBJECT_ID)
+  group_by(SUBJECT_ID) %>% 
+  slice_min(order_by=HADM_ID, with_ties = FALSE) %>% 
+  ungroup() %>% 
+  select(-DELIVERY_TYPE.x,-DELIVERY_TYPE.y,HADM_ID, ICUSTAY_ID) #Select the earliest hospital admission
 
 rio::export(final_los_diagnoses, "Data/LOS and Diagnosis.csv")
 
