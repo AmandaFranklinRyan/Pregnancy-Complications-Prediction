@@ -26,7 +26,8 @@ csection_reasons <- maternal_discharge %>%
 #86 women chose c_sections
 elective_list <- csection_reasons %>% 
   filter(!is.na(elective)) %>% 
-  select(SUBJECT_ID,elective)
+  select(SUBJECT_ID,elective) %>% 
+  distinct()
 
 rio::export(elective_list, "Data/Elective csections list.rds")
 
@@ -51,6 +52,11 @@ breech_info <- left_join(maternal_data, breech_reasons, by="SUBJECT_ID")
 maternal_total_minus_elective <- breech_info %>% 
   filter(!SUBJECT_ID %in% elective_list$SUBJECT_ID) #selects only IDs not in elective list
 
+# Combine Information with ICU stay and diagnosis data----------------------------------------------
 
+#Select key variables
+icu_diagnosis <- icu_data %>% 
+  select(SUBJECT_ID,LOS,hep_vaccine_total)
 
-
+all_maternal_variables <- left_join(maternal_total_minus_elective, icu_diagnosis, by="SUBJECT_ID") %>% 
+  distinct()
