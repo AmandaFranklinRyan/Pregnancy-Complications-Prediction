@@ -11,11 +11,6 @@ library(rio)
 
 pregnancy_data <- rio::import(file = "Data/Cleaned Data 35 Plus.csv")
 
-colnames(pregnancy_data) <- c('ID','Gender','Maternal Age','Number of Pregnancies','Number of children','Delivery Type',
-                              'Baby length (cm)','Abdominal girth(cm)','Birth weight (kg)','Head circumference (cm)',
-                              'Gestational Age', 'Breech','Length of ICU Stay (days)', 'HEP B Vaccination','Insurance',
-                              'Ethnicity')
-
 mutated <- pregnancy_data %>% 
   mutate(`Delivery Type`=as.factor(`Delivery Type`))
 
@@ -32,6 +27,6 @@ logregMULTI <- glm(`Delivery Type` ~
 
 levels(mutated$`Delivery Type`)
 
-# Either copy the results from the RStudio console...
+# Print results
 summary(logregMULTI)
 print(as.data.frame(exp(cbind(OR = coef(logregMULTI), confint(logregMULTI, level=0.95)))))
