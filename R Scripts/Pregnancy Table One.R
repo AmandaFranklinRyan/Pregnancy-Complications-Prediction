@@ -1,15 +1,18 @@
 library(tidyverse)
 library(tableone)
+#install.packages("kableExtra")
+library(kableExtra)
+library(ggplot2)
 
 #Import datsets
 
-raw_data <- read.csv("Data/Final Machine Learning Test Data Version 1.csv")
+pregnancy_data <- rio::import(file = "data/Cleaned Data for Machine Learning.rds")
 
 # 1. Clean data and correct types -----------------------------------------
 
-str(raw_data)
+str(pregnancy_data)
 
-cleaned_data <- raw_data %>% 
+cleaned_data <- pregnancy_data %>% 
   mutate(LOS=as.numeric(LOS)) %>% 
   mutate(breech_binary=ifelse(is.na(breech_binary),0, 1)) %>%  #Change NA to 0 
   mutate(weight_CHART=ifelse(weight_CHART>1000,weight_CHART/1000, weight_CHART)) %>%  #some weights still in grams, convert to kg
@@ -98,14 +101,13 @@ pregnancy_table =  CreateTableOne(data=cleaned_table,
                                strata = c('Delivery Type'))
 
 
-#Export table to csv files
-pregnancy_table <- print(pregnancy_table,printToggle = FALSE, quote=FALSE)
-write.csv(pregnancy_table, file = "Pregnancy_table.csv")
 
 
+# Create the table using tableone
+pregnancy_table <- CreateTableOne(data = cleaned_table, vars = c('Gender', 'Maternal Age', 'Number of Pregnancies', 'Number of children', 'Baby length (cm)', 'Birth weight (kg)', 'Gestational Age', 'Length of ICU Stay (days)', 'HEP B Vaccination', 'Insurance', 'Ethnicity'), factorVars = categorical_variables, strata = c('Delivery Type'))
 
-
-
+# Convert the table to a formatted text representation
+pregnancy_table_text <- print(pregnancy_table)
 
 
 
