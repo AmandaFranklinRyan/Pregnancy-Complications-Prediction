@@ -9,7 +9,7 @@ library(rio)
 
 #Rename columns
 
-pregnancy_data <- rio::import(file = "Data/Final Machine Learning Test Data Version 1.csv")
+pregnancy_data <- rio::import(file = "Data/Cleaned Data 35 Plus.csv")
 
 colnames(pregnancy_data) <- c('ID','Gender','Maternal Age','Number of Pregnancies','Number of children','Delivery Type',
                               'Baby length (cm)','Abdominal girth(cm)','Birth weight (kg)','Head circumference (cm)',

@@ -3,30 +3,31 @@ library(tableone)
 #install.packages("kableExtra")
 library(kableExtra)
 library(ggplot2)
+library(rio)
 
 #Import datsets
 
-pregnancy_data <- rio::import(file = "data/Cleaned Data for Machine Learning.rds")
+pregnancy_data <- rio::import(file = "Data/Final Machine Learning Test Data Version 1.csv")
 
-# 1. Clean data and correct types -----------------------------------------
-
-str(pregnancy_data)
-
-cleaned_data <- pregnancy_data %>% 
-  mutate(LOS=as.numeric(LOS)) %>% 
-  mutate(breech_binary=ifelse(is.na(breech_binary),0, 1)) %>%  #Change NA to 0 
-  mutate(weight_CHART=ifelse(weight_CHART>1000,weight_CHART/1000, weight_CHART)) %>%  #some weights still in grams, convert to kg
-  filter(weight_CHART>0.5 & weight_CHART<5)  #filter to remove outliers
-
-
-##Rename all variables for making table
-colnames(cleaned_data) <- c('ID', 'Gender','Maternal Age','Number of Pregnancies','Number of children','Delivery Type',
+colnames(pregnancy_data) <- c('ID', 'Gender','Maternal Age','Number of Pregnancies','Number of children','Delivery Type',
                             'Baby length (cm)','Abdominal girth(cm)','Birth weight (kg)','Head circumference (cm)',
                             'Gestational Age', 'Breech','Length of ICU Stay (days)', 'HEP B Vaccination','Insurance',
                             'Ethnicity')
 
-#EXport cleaned dataframe
-rio::export(cleaned_data,"Data/Cleaned Data for Machine Learning 2.csv")
+# 1. Clean data and correct types -----------------------------------------
+
+thirty_five_plus <- c("35-36","37-40","33")
+
+cleaned_data <- pregnancy_data %>% 
+  mutate(LOS=as.numeric(`Length of ICU Stay (days)`)) %>% 
+  mutate(`Breech`=ifelse(is.na(`Breech`),0, 1)) %>%  #Change NA to 0 
+  mutate(`Birth weight (kg)`=ifelse(`Birth weight (kg)`>1000,`Birth weight (kg)`/1000, `Birth weight (kg)`)) %>%  #some weights still in grams, convert to kg
+  filter(`Birth weight (kg)`>0.5 & `Birth weight (kg)`<5) %>%   #filter to remove outliers
+  filter(`Gestational Age` %in% thirty_five_plus)
+
+
+#Export cleaned dataframe
+rio::export(cleaned_data,"Data/Cleaned Data 35 Plus.csv")
 
 summary(cleaned_data)
 str(cleaned_data)

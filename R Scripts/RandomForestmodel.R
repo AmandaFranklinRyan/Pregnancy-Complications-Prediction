@@ -4,6 +4,7 @@ library(tidyverse)
 library(tidymodels)
 library(rio)
 library(randomForest)
+library(vip)
 
 # Load Data ---------------------------------------------------------------
 
@@ -19,7 +20,8 @@ colnames(pregnancy_data) <- c('Gender','Maternal Age','Number of Pregnancies','N
 pregnancy_data <- pregnancy_data %>% 
   mutate(`HEP B Vaccination` = as.factor(`HEP B Vaccination`)) %>% 
   mutate(Breech = as.factor(Breech)) %>% 
-  mutate(`Delivery Type` = as.factor(`Delivery Type`))
+  mutate(`Delivery Type` = as.factor(`Delivery Type`)) %>% 
+  select(-'HEP B Vaccination',-'Length of ICU Stay (days)')
 
 # Split the dataset -------------------------------------------------------
 
@@ -37,9 +39,8 @@ train_folds <- vfold_cv(data = train_data, v = 10)
 
 df_rec <- recipe(`Delivery Type` ~ ., data = train_data) %>% 
   step_normalize(`Maternal Age`,`Number of Pregnancies`,`Number of children`,
-                 `Baby length (cm)`,`Abdominal girth(cm)`,`Birth weight (kg)`,`Head circumference (cm)`,
-                 `Length of ICU Stay (days)`) %>% 
-  step_dummy(`Gender`, Breech, `Gestational Age`,`HEP B Vaccination`,Insurance, Ethnicity, one_hot = TRUE)
+                 `Baby length (cm)`,`Abdominal girth(cm)`,`Birth weight (kg)`,`Head circumference (cm)`) %>% 
+  step_dummy(`Gender`, Breech, `Gestational Age`,Insurance, Ethnicity, one_hot = TRUE)
 
 # Specify model type and computational engine -----------------------------
 
@@ -101,3 +102,16 @@ conf_mat(predictions, truth = `Delivery Type`, estimate = .pred_class)
 two_class_curve <- roc_curve(predictions, `Delivery Type`, .pred_CSECTION, event_level = "second")
 
 autoplot(two_class_curve)
+
+# identify most important variables-----------------------------------------
+vi_df <- rf_fit %>%
+  extract_fit_parsnip() %>% # extract the fit object
+  vi(scale = TRUE) # scale the variable importance scores so that the largest is 100
+
+ggplot(vi_df, aes(x = reorder(Variable, Importance), y = Importance)) +
+  geom_col(fill = "#0072B2") +
+  coord_flip() +
+  labs(title = "Variable Importance Plot",
+       x = "Variable",
+       y = "Importance")
+

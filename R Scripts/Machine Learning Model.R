@@ -7,13 +7,13 @@ library(rio)
 
 # Load Data ---------------------------------------------------------------
 
-pregnancy_data <- rio::import(file = "Data/Cleaned Data for Machine Learning.rds")
+pregnancy_data <- rio::import(file = "Data/ML Data Normal Term.csv")
 
 #Rename columns
-colnames(pregnancy_data) <- c('Gender','Maternal Age','Number of Pregnancies','Number of children','Delivery Type',
-                            'Baby length (cm)','Abdominal girth(cm)','Birth weight (kg)','Head circumference (cm)',
-                            'Gestational Age', 'Breech','Length of ICU Stay (days)', 'HEP B Vaccination','Insurance',
-                            'Ethnicity')
+##colnames(pregnancy_data) <- c('Gender','Maternal Age','Number of Pregnancies','Number of children','Delivery Type',
+                            #'Baby length (cm)','Abdominal girth(cm)','Birth weight (kg)','Head circumference (cm)',
+                            #'Gestational Age', 'Breech','Length of ICU Stay (days)', 'HEP B Vaccination','Insurance',
+                            #'Ethnicity')
 
 #Recode hepatitis vaccination to make it a factor for later setpes
 pregnancy_data <- pregnancy_data %>% 
