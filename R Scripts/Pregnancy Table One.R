@@ -13,11 +13,17 @@ cleaned_data <- raw_data %>%
   mutate(LOS=as.numeric(LOS)) %>% 
   mutate(breech_binary=ifelse(is.na(breech_binary),0, 1)) %>%  #Change NA to 0 
   mutate(weight_CHART=ifelse(weight_CHART>1000,weight_CHART/1000, weight_CHART)) %>%  #some weights still in grams, convert to kg
-  filter(weight_CHART>0.5 & weight_CHART<5) %>%  #filter to remove outliers
-  select(-SUBJECT_ID)
+  filter(weight_CHART>0.5 & weight_CHART<5)  #filter to remove outliers
+
+
+##Rename all variables for making table
+colnames(cleaned_data) <- c('ID', 'Gender','Maternal Age','Number of Pregnancies','Number of children','Delivery Type',
+                            'Baby length (cm)','Abdominal girth(cm)','Birth weight (kg)','Head circumference (cm)',
+                            'Gestational Age', 'Breech','Length of ICU Stay (days)', 'HEP B Vaccination','Insurance',
+                            'Ethnicity')
 
 #EXport cleaned dataframe
-rio::export(cleaned_data,"Data/Cleaned Data for Machine Learning.rds")
+rio::export(cleaned_data,"Data/Cleaned Data for Machine Learning 2.csv")
 
 summary(cleaned_data)
 str(cleaned_data)
@@ -56,13 +62,6 @@ LOS_plot <- ggplot(data=cleaned_data, aes(x=LOS, fill=DELIVERY_TYPE))+
 # 3. Create Tableone ---------------------------------------------------------
 ## ---- 3  Summarising Data using tableone library
 
-
-##Rename all variables for making table
-colnames(cleaned_data) <- c('Gender','Maternal Age','Number of Pregnancies','Number of children','Delivery Type',
-                            'Baby length (cm)','Abdominal girth(cm)','Birth weight (kg)','Head circumference (cm)',
-                            'Gestational Age', 'Breech','Length of ICU Stay (days)', 'HEP B Vaccination','Insurance',
-                            'Ethnicity')
-
 # Convert types for table
 cleaned_table <- cleaned_data %>% 
   mutate(Gender=as.factor(Gender)) %>% 
@@ -70,7 +69,6 @@ cleaned_table <- cleaned_data %>%
   mutate(`HEP B Vaccination`=as.factor(`HEP B Vaccination`))
 
 #Recode gestational age
-
 VERY_EARLY <- c("25-26","27-28","29-30")
 EARLY <- c("31-32","33-34")
 FULL_TERM <- c("35-36","37-40","40")
