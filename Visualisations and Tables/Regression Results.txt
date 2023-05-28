@@ -1,0 +1,19 @@
+                                      Estimate Std. Error z value Pr(>|z|)  
+(Intercept)                            4.94501    2.63706   1.875   0.0608 .
+as.numeric(`Maternal Age`)            -0.02980    0.02212  -1.347   0.1779  
+as.numeric(`Number of Pregnancies`)    0.03298    0.09538   0.346   0.7295  
+as.numeric(`Baby length (cm)`)         0.01080    0.02363   0.457   0.6475  
+as.numeric(`Birth weight (kg)`)        0.43692    0.35274   1.239   0.2155  
+as.numeric(`Number of children`)       0.14044    0.12708   1.105   0.2691  
+as.numeric(`Head circumference (cm)`) -0.18413    0.08536  -2.157   0.0310 *
+as.numeric(`Abdominal girth(cm)`)     -0.01929    0.04640  -0.416   0.6776  
+as.factor(`Gestational Age`)37-40      0.40085    0.27530   1.456   0.1454  
+as.factor(`Gestational Age`)40        -0.43807    0.45074  -0.972   0.3311  
+as.factor(Ethnicity)BLACK              0.34425    0.58221   0.591   0.5543  
+as.factor(Ethnicity)HISPANIC/LATINO    0.07302    0.58384   0.125   0.9005  
+as.factor(Ethnicity)UNKNOWN/OTHER      0.43049    0.52270   0.824   0.4102  
+as.factor(Ethnicity)WHITE             -0.09354    0.41675  -0.224   0.8224  
+as.factor(Gender)M                     0.62324    0.24345   2.560   0.0105 *
+as.factor(Breech)1                    -2.74197    1.06826  -2.567   0.0103 *
+---
+Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1

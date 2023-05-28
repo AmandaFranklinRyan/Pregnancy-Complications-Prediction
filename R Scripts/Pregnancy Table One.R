@@ -4,6 +4,8 @@ library(tableone)
 library(kableExtra)
 library(ggplot2)
 library(rio)
+library(data.table)
+library(formattable)
 
 #Import datsets
 
@@ -16,24 +18,20 @@ colnames(pregnancy_data) <- c('ID', 'Gender','Maternal Age','Number of Pregnanci
 
 # 1. Clean data and correct types -----------------------------------------
 
-thirty_five_plus <- c("35-36","37-40","33")
+thirty_five_plus <- c("35-36","37-40","40")
 
 cleaned_data <- pregnancy_data %>% 
-  mutate(LOS=as.numeric(`Length of ICU Stay (days)`)) %>% 
+  mutate(`Length of ICU Stay (days)`=as.numeric(`Length of ICU Stay (days)`)) %>% 
   mutate(`Breech`=ifelse(is.na(`Breech`),0, 1)) %>%  #Change NA to 0 
   mutate(`Birth weight (kg)`=ifelse(`Birth weight (kg)`>1000,`Birth weight (kg)`/1000, `Birth weight (kg)`)) %>%  #some weights still in grams, convert to kg
   filter(`Birth weight (kg)`>0.5 & `Birth weight (kg)`<5) %>%   #filter to remove outliers
+  filter(Gender=='F'|Gender=='M') %>% 
   filter(`Gestational Age` %in% thirty_five_plus)
-
 
 #Export cleaned dataframe
 rio::export(cleaned_data,"Data/Cleaned Data 35 Plus.csv")
 
-summary(cleaned_data)
-str(cleaned_data)
-
-#Visualise data to identify outliers
-
+ 
 # Visualise data to identify outliers -------------------------------------
 
 # Plot of head circumference
@@ -69,46 +67,43 @@ LOS_plot <- ggplot(data=cleaned_data, aes(x=LOS, fill=DELIVERY_TYPE))+
 # Convert types for table
 cleaned_table <- cleaned_data %>% 
   mutate(Gender=as.factor(Gender)) %>% 
-  mutate(`HEP B Vaccination`=ifelse(`HEP B Vaccination`==1, 'Vaccinated','Unvaccinated')) %>% 
-  mutate(`HEP B Vaccination`=as.factor(`HEP B Vaccination`))
+  mutate(Breech=ifelse(Breech==1, 'Breech','Not breech')) %>% 
+  mutate(Breech=as.factor(Breech))
 
 #Recode gestational age
-VERY_EARLY <- c("25-26","27-28","29-30")
-EARLY <- c("31-32","33-34")
-FULL_TERM <- c("35-36","37-40","40")
+thirty_five <- c("35-36")
+thirty_seven <- c("37-40")
+forty_plus <- c("40")
 
 cleaned_table <- cleaned_table %>% 
-  mutate(`Gestational Age`=case_when(`Gestational Age` %in% FULL_TERM~ "35-40 Weeks",
-                                       `Gestational Age` %in% EARLY~ "31-34 Weeks",
-                                       `Gestational Age` %in% VERY_EARLY~ "25-30 Weeks",
+  mutate(`Gestational Age`=case_when(`Gestational Age` %in% thirty_five~ "35-36 Weeks",
+                                       `Gestational Age` %in% thirty_seven~ "37-40 Weeks",
+                                       `Gestational Age` %in% forty_plus~ "40+ Weeks",
                                    TRUE~`Gestational Age`))
 
-
-#Rename all columns in the dataframe
-colnames(cleaned_data) <- c('Gender','Maternal Age','Number of Pregnancies','Number of children','Delivery Type',
-                            'Baby length (cm)','Abdominal girth(cm)','Birth weight (kg)','Head circumference (cm)',
-                            'Gestational Age', 'Breech','Length of ICU Stay (days)', 'HEP B Vaccination','Insurance',
-                            'Ethnicity')
-
 #Create table using tableone
-categorical_variables <- c("Gender",'Delivery Type', "Gestational Age", "Insurance","Ethnicity",
-                           'HEP B Vaccination')
-normal_variables <- c("age_cleaned")
-summary_table <- tableone::CreateTableOne(data=cleaned_table)
+categorical_variables <- c("Gender",'Delivery Type', "Gestational Age","Ethnicity")
+normal_variables <- c("Maternal Age")
+
 pregnancy_table =  CreateTableOne(data=cleaned_table,
-                               vars= c('Gender', 'Maternal Age','Number of Pregnancies','Number of children','Baby length (cm)',
-                                       'Birth weight (kg)','Gestational Age', 'Length of ICU Stay (days)','HEP B Vaccination',"Insurance" ,"Ethnicity"),
+                               vars= c('Maternal Age','Number of Pregnancies','Number of children','Breech', 'Baby length (cm)',
+                                       'Birth weight (kg)','Gender', 'Abdominal girth(cm)', 'Gestational Age','Length of ICU Stay (days)',
+                                       "Ethnicity"),
                                factorVars=categorical_variables,
                                strata = c('Delivery Type'))
 
 
-
-
-# Create the table using tableone
-pregnancy_table <- CreateTableOne(data = cleaned_table, vars = c('Gender', 'Maternal Age', 'Number of Pregnancies', 'Number of children', 'Baby length (cm)', 'Birth weight (kg)', 'Gestational Age', 'Length of ICU Stay (days)', 'HEP B Vaccination', 'Insurance', 'Ethnicity'), factorVars = categorical_variables, strata = c('Delivery Type'))
-
 # Convert the table to a formatted text representation
-pregnancy_table_text <- print(pregnancy_table)
+pregnancy_table_text <- print(pregnancy_table, showAllLevels = TRUE) #includes both categories for binary categorical variables
+
+#Copy to Excel to delete columns and import back to customise
+table_one_formatted <- read.csv("Data/TableOneDataFinal.csv", colClasses = "character", header= TRUE) #reads column names as headers and doesn't include NAs
+table_one_data_table <- as.data.frame(table_one_formatted) #convert to dataframe
+
+#Rename columns and convert columns to bold type
+colnames(table_one_data_table) <- c("Variable"," ","C-section","Normal Delivery")
+formatted_table <- formattable(table_one_data_table,align =c("l","c","c"),
+                               list(`Variable` = formatter("span", style = ~ style(color = "black",font.weight = "bold"))))
 
 
 

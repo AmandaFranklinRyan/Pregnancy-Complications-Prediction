@@ -8,20 +8,13 @@ library(vip)
 
 # Load Data ---------------------------------------------------------------
 
-pregnancy_data <- rio::import(file = "Data/Cleaned Data for Machine Learning.rds")
-
-# Rename columns
-colnames(pregnancy_data) <- c('Gender','Maternal Age','Number of Pregnancies','Number of children','Delivery Type',
-                              'Baby length (cm)','Abdominal girth(cm)','Birth weight (kg)','Head circumference (cm)',
-                              'Gestational Age', 'Breech','Length of ICU Stay (days)', 'HEP B Vaccination','Insurance',
-                              'Ethnicity')
+pregnancy_data <- rio::import(file = "Data/Cleaned Data 35 Plus.csv")
 
 # Recode hepatitis vaccination to make it a factor for later steps
 pregnancy_data <- pregnancy_data %>% 
-  mutate(`HEP B Vaccination` = as.factor(`HEP B Vaccination`)) %>% 
   mutate(Breech = as.factor(Breech)) %>% 
   mutate(`Delivery Type` = as.factor(`Delivery Type`)) %>% 
-  select(-'HEP B Vaccination',-'Length of ICU Stay (days)')
+  select(-'HEP B Vaccination',-'Length of ICU Stay (days)',-ID)
 
 # Split the dataset -------------------------------------------------------
 
