@@ -92,6 +92,9 @@ predictions <- test_data %>%
 
 metrics(predictions, truth = `Delivery Type`, estimate = .pred_class)
 
+specificity <- spec(predictions, truth = `Delivery Type`, estimate = .pred_class)
+sensitivity <- sens(predictions, truth = `Delivery Type`, estimate = .pred_class)
+
 # Confusion matrix --------------------------------------------------------
 
 conf_mat(predictions, truth = `Delivery Type`, estimate = .pred_class)
