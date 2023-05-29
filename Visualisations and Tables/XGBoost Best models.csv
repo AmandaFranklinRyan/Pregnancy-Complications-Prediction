@@ -1,0 +1,6 @@
+mtry,trees,min_n,tree_depth,learn_rate,.metric,.estimator,mean,n,std_err,.config
+3,300,6,12,0.005,accuracy,binary,0.567948717948718,10,0.0281597266493777,Preprocessor1_Model0197
+5,300,10,3,0.01,accuracy,binary,0.564529914529915,10,0.0238024388997971,Preprocessor1_Model0281
+5,533,10,12,0.005,accuracy,binary,0.564529914529915,10,0.0238024388997971,Preprocessor1_Model0458
+3,300,10,9,0.015,accuracy,binary,0.564387464387464,10,0.0234471761328554,Preprocessor1_Model0169
+5,300,10,6,0.01,accuracy,binary,0.564387464387464,10,0.0266337326355893,Preprocessor1_Model0345

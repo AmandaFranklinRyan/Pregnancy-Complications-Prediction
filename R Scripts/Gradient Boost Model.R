@@ -14,7 +14,8 @@ pregnancy_data <- rio::import(file = "Data/Cleaned Data 35 Plus.csv")
 pregnancy_data <- pregnancy_data %>% 
   mutate(Breech=as.factor(Breech)) %>% 
   mutate(`Delivery Type`=as.factor(`Delivery Type`)) %>% 
-  select(-ID,`HEP B Vaccination`)
+  mutate(`Insurance`=as.factor(`Insurance`)) %>% 
+  select(-ID,`HEP B Vaccination`,-`Length of ICU Stay (days)`)
 
 # Split the dataset for training and testing -------------------------------------------------------
 
@@ -117,4 +118,17 @@ rio::export(confusion_matrix,"Visualisations and Tables/XGBoost Confusion Matrix
 two_class_curve <- roc_curve(predictions, `Delivery Type`, .pred_CSECTION, event_level = "second")
 
 autoplot(two_class_curve)
+
+# identify most important variables-----------------------------------------
+vi_df <- gbt_fit %>%
+  extract_fit_parsnip() %>% # extract the fit object
+  vi(scale = TRUE) %>%  # scale the variable importance scores so that the largest is 100 
+  head(6)
+
+ggplot(vi_df, aes(x = reorder(Variable, Importance), y = Importance)) +
+  geom_col(fill = "#0072B2") +
+  coord_flip() +
+  labs(title = "Variable Importance Plot",
+       x = "Variable",
+       y = "Importance")
 
