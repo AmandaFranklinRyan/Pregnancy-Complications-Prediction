@@ -9,19 +9,14 @@ library(rio)
 
 pregnancy_data <- rio::import(file = "Data/Cleaned Data 35 Plus.csv")
 
-#Rename columns
-##colnames(pregnancy_data) <- c('Gender','Maternal Age','Number of Pregnancies','Number of children','Delivery Type',
-                            #'Baby length (cm)','Abdominal girth(cm)','Birth weight (kg)','Head circumference (cm)',
-                            #'Gestational Age', 'Breech','Length of ICU Stay (days)', 'HEP B Vaccination','Insurance',
-                            #'Ethnicity')
 
-#Recode hepatitis vaccination to make it a factor for later setpes
+#Recode variuables and remove unnecessary ones
 pregnancy_data <- pregnancy_data %>% 
   mutate(Breech=as.factor(Breech)) %>% 
   mutate(`Delivery Type`=as.factor(`Delivery Type`)) %>% 
   select(-ID,`HEP B Vaccination`)
 
-# Split the dataset -------------------------------------------------------
+# Split the dataset for training and testing -------------------------------------------------------
 
 set.seed(42)
 pregnancy_split <- pregnancy_data%>% 
@@ -32,7 +27,7 @@ train_data <- training(pregnancy_split)
 test_data <- testing(pregnancy_split)
 
 set.seed(42)
-train_folds <- vfold_cv(data = train_data, v = 10)
+train_folds <- vfold_cv(data = train_data, v = 10) #10 fold cross validation
 
 # Data pre-processing -----------------------------------------------------
 
@@ -48,12 +43,15 @@ gbt_model <-
   boost_tree() %>%
   set_engine("xgboost") %>%
   set_mode("classification") %>%
-  set_args(mtry = 4, trees = tune(), learn_rate = tune(), tree_depth = 6, min_n = 1)
+  set_args(mtry = tune(), trees = tune(), learn_rate = tune(), tree_depth = tune(), min_n = tune())
 
 # Create a regular tune grid ----------------------------------------------
 
 gbt_grid <- grid_regular(range_set(trees(), c(300,1000)),
+                         range_set(mtry(), c(3,10)),#Only 13 variables in the dataset
+                         range_set(tree_depth(), c(3,12)),#default is 6
                          range_set(learn_rate(trans = NULL), c(0.005, 0.02)),
+                         range_set(min_n(), c(2,15)),#Default is 6
                          levels = 4)
 
 # Create model workflow ---------------------------------------------------
@@ -77,6 +75,10 @@ collect_metrics(gbt_res)
 # Finalise model workflow -------------------------------------------------
 
 best_gbt <- select_best(x = gbt_res, metric = "accuracy")
+show_gbt <- show_best(x = gbt_res, metric = "accuracy")
+show_gbt <- as.data.frame(show_gbt)
+
+rio::export(show_gbt,"Visualisations and Tables/XGBoost Best models.csv")
 
 final_wflow <- 
   gbt_wflow %>% 
@@ -95,13 +97,20 @@ predictions <- test_data %>%
   select(`Delivery Type`) %>% # keep target variable (also known as the truth)
   bind_cols(., gbt_pred_class, gbt_pred_prob)
 
+rio::export(predictions,"Visualisations and Tables/XGBoost Predictions.csv")
+
 # Calculate performance metrics -------------------------------------------
 
-metrics(predictions, truth = `Delivery Type`, estimate = .pred_class)
+matrics <- metrics(predictions, truth = `Delivery Type`, estimate = .pred_class)
+rio::export(metrics,"Visualisations and Tables/XGBoost Metrics.rds")
+
+specificity <- spec(predictions, truth = `Delivery Type`, estimate = .pred_class)
+sensitivity <- sens(predictions, truth = `Delivery Type`, estimate = .pred_class)
 
 # Confusion matrix --------------------------------------------------------
 
-conf_mat(predictions, truth = `Delivery Type`, estimate = .pred_class)
+confusion_matrix <- conf_mat(predictions, truth = `Delivery Type`, estimate = .pred_class)
+rio::export(confusion_matrix,"Visualisations and Tables/XGBoost Confusion Matrix.rds")
 
 # Receiver Operating Characteristic (ROC) curve ---------------------------
 
