@@ -14,7 +14,8 @@ pregnancy_data <- rio::import(file = "Data/Cleaned Data 35 Plus.csv")
 pregnancy_data <- pregnancy_data %>% 
   mutate(Breech = as.factor(Breech)) %>% 
   mutate(`Delivery Type` = as.factor(`Delivery Type`)) %>% 
-  select(-'HEP B Vaccination',-'Length of ICU Stay (days)',-ID)
+  mutate(`Insurance` = as.factor(`Insurance`)) %>% 
+  select(-'HEP B Vaccination',-'Length of ICU Stay (days)',-ID,-Ethnicity,-Insurance)
 
 # Split the dataset -------------------------------------------------------
 
@@ -33,7 +34,7 @@ train_folds <- vfold_cv(data = train_data, v = 10)
 df_rec <- recipe(`Delivery Type` ~ ., data = train_data) %>% 
   step_normalize(`Maternal Age`,`Number of Pregnancies`,`Number of children`,
                  `Baby length (cm)`,`Abdominal girth(cm)`,`Birth weight (kg)`,`Head circumference (cm)`) %>% 
-  step_dummy(`Gender`, Breech, `Gestational Age`,Insurance, Ethnicity, one_hot = TRUE)
+  step_dummy(`Gender`, Breech, `Gestational Age`, one_hot = TRUE)
 
 # Specify model type and computational engine -----------------------------
 
@@ -41,7 +42,12 @@ rf_model <-
   rand_forest() %>% # Model type: Random Forest
   set_engine("randomForest") %>% # Computational engine: randomForest
   set_mode("classification") %>% # Specify model mode
-  set_args(mtry = 3, trees = 1000) # Specify model arguments
+  set_args(mtry = tune(), trees = tune(),min_n=tune()) # Specify model arguments
+
+
+gbt_grid <- grid_regular(range_set(mtry(), c(3,10)),
+                         range_set(trees(), c(1000,2000)),
+                         range_set(min_n(), c(2,15)))
 
 # Create model workflow ---------------------------------------------------
 
